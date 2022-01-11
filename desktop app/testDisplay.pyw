@@ -33,6 +33,6 @@ start = tk.Button(root,text="start",command=lambda :animation(count))
 start.pack()
 
 stop = tk.Button(root,text="stop",command=stop_animation)
-stop.pack()
+stop.pack() 
 
 root.mainloop()
