@@ -1,0 +1,190 @@
+function convertArrayBufferToHexaDecimal(buffer) {
+  var data_view = new DataView(buffer);
+  var iii, len, hex = "", c;
+
+  for ((iii = 0), (len = data_view.byteLength); iii < len; iii += 1) {
+      c = data_view.getUint8(iii).toString(16);
+      if (c.length < 2) c = "0" + c;
+
+      hex += c;
+  }
+
+  return hex;
+}
+
+function convertStringToArrayBufferView(str) {
+  var bytes = new Uint8Array(str.length);
+  for (var iii = 0; iii < str.length; iii++)
+      bytes[iii] = str.charCodeAt(iii);
+  return bytes;
+}
+
+function crypt(data) {
+
+  var crypto = window.crypto || window.msCrypto;
+
+  if (crypto.subtle) {
+
+      //console.log("Cryptography API Supported");
+
+      var crypt = crypto.subtle.digest(
+      { name: "SHA-256" },
+      convertStringToArrayBufferView(data.toLowerCase().trim())
+      );
+
+      if (typeof crypt.then == "function") {
+      crypt.then(function(result) {
+          result = convertArrayBufferToHexaDecimal(result);
+          //console.log("if");
+          setCookie('STYXKEY_user_id', result, 30)
+      });
+
+      } else {
+        var result = convertArrayBufferToHexaDecimal(crypt.result);
+        //console.log(result);
+        setCookie('STYXKEY_user_id', result, 30)
+      }
+
+  } else {
+      //console.log("Cryptography API not Supported");
+  }
+}
+
+//cookie
+function setCookie(cname, cvalue, exdays) {
+  var d = new Date();
+  d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
+  var expires = "expires="+d.toUTCString();
+  document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+}
+
+function getCookie(cname) {
+  var name = cname + "=";
+  var ca = document.cookie.split(';');
+  for(var i = 0; i < ca.length; i++) {
+    var c = ca[i];
+    while (c.charAt(0) == ' ') {
+      c = c.substring(1);
+    }
+    if (c.indexOf(name) == 0) {
+      return c.substring(name.length, c.length);
+    }
+  }
+  return "";
+}
+
+document.addEventListener("DOMContentLoaded", function(event) {
+
+  //consent cookie
+  const CMregex = new RegExp('(c3:0)')
+  const CM = getCookie('STYXKEY_CONSENTMGR')
+
+  //form options
+  const tlh_form = document.querySelector(".tlh-form")
+  const fry_form = document.querySelector(".fr-form")
+  const grv_form = document.querySelector('form[id*="gform"')
+  const forms = [tlh_form, fry_form, grv_form]
+  let email_field
+
+  //get the form 
+  function get_form() {
+    let form;
+    forms.forEach(function(value) {
+      if(value) {
+        form = value
+      }
+    })
+    return form
+  }
+  const wes_form = get_form()
+
+  //form submit 
+  function set_cookie(s_form) {
+    
+    //if gravity, updt email field
+    if (s_form.id.indexOf('gform') >= 0) {
+      email_field = s_form.querySelector('.ginput_container_email input')
+    } else {
+      email_field = s_form.querySelector('input[type="email"]')
+    }
+
+    //set or update cookie value
+    //if no C3:0, then
+    if(!CMregex.test(CM) && email_field){
+      if (email_field.value !='') {
+        crypt(email_field.value)
+      }
+    }
+  }
+  
+  //if any form
+  if (wes_form) {
+    
+    email_field = wes_form.querySelector('input[type="email"]')
+
+    // tlh step form, email is in step 1
+    if (wes_form.querySelector('.next-button') && email_field) {
+
+      wes_form.querySelector('.next-button').addEventListener('click', function() {
+        set_cookie(wes_form)
+      })
+
+    //tlh regular
+    //step form, email is in step 2
+    //also gravity form
+    } else if (wes_form.className.indexOf('tlh-form') >= 0) {
+
+      wes_form.addEventListener('submit', function()  {
+        set_cookie(wes_form)
+      })
+    
+    //freya
+    } else if (wes_form.querySelector('.fr-button')) {
+      
+      //normal form &
+      //2 step form &
+      //email is in step 1
+      wes_form.querySelector('.fr-button').addEventListener("click", function() {
+        
+        set_cookie(wes_form)
+
+        //email in step 2 
+        if (wes_form.querySelector('.fr-button--previous')) {
+          wes_form.querySelector('.fr-button--submit').addEventListener("click", function() { 
+            set_cookie(wes_form)
+          })
+        }
+        
+      })
+
+    } else if (wes_form.id.indexOf('gform') >= 0) {
+      set_cookie(wes_form)
+    }
+
+    //on enter 
+    document.addEventListener('keydown', function (e) {
+      
+      if (e.key == 'Enter') {
+        set_cookie(wes_form)
+      }
+      
+    })
+
+    
+
+  }
+
+  //if consent manager opt out
+  //kill user_id cookie
+  if (CMregex.test(CM)) {
+    setCookie('STYXKEY_user_id', '', -1)
+  }
+
+  //if user_id have same value as
+  //jwm_uid
+  //kill user id
+  if (getCookie('STYXKEY_user_id') == getCookie('STYXKEY_jwm_uid')) {
+    setCookie('STYXKEY_user_id', '', -1)
+  }
+
+});

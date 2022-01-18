@@ -1,0 +1,99 @@
+function getSmartCookie(cname) {
+  
+  let name = cname + '=',
+      decodedCookie = decodeURIComponent(document.cookie),
+      ca = decodedCookie.split(';');
+
+  for (i = 0; i < ca.length; i++) {
+      var c = ca[i];
+      while (c.charAt(0) == ' ') {
+          c = c.substring(1);
+      }
+      if (c.indexOf(name) == 0) {
+          return c.substring(name.length, c.length);
+      }
+  }
+
+  return '';
+
+}	
+
+function getURL_Parameters() {
+  
+  let url = window.location.href,
+      status = false;
+  
+  if ( url.includes('?') ) {
+    status = true;
+  }
+
+  return status;
+
+}
+
+function changeLink() {
+  $('.was-cta > a , a.was-cta , .utm-cta > a , a.utm-cta').each(function() { 
+      
+    let param = '?',
+        newUrl,
+        oldUrl = $(this).attr('href'),
+        tlh_cookie_value = getSmartCookie('tlh_qry_string'),
+        freya_cookie_value = getSmartCookie('rfi_query_string'),
+        original_referrer = getSmartCookie('original_referrer');
+
+    if (oldUrl.indexOf('?') != -1) {
+      param = '&';
+    }
+
+    // TLH
+    // Links with UTM & no referrer
+    if (tlh_cookie_value !== '') {
+      newUrl = oldUrl + param + tlh_cookie_value;
+    }
+
+    // Links with UTM & referrer
+    if (tlh_cookie_value !== '' && original_referrer !== '') {
+      newUrl = oldUrl + param + tlh_cookie_value + '&original_referrer=' + original_referrer;
+    }
+
+    // Freya
+    // Links with UTM & no referrer
+    if (freya_cookie_value !== '') {
+      newUrl = oldUrl + param + freya_cookie_value;
+    }
+
+    // Links with UTM & referrer
+    if (freya_cookie_value !== '' && original_referrer !== '') {
+      newUrl = oldUrl + param + freya_cookie_value + '&original_referrer=' + original_referrer;
+    }
+
+    $(this).attr('href', newUrl);
+
+  });
+}
+
+function checkURL() {
+
+  let tlh_cookie_value = getSmartCookie('tlh_qry_string'),
+      freya_cookie_value = getSmartCookie('rfi_query_string'),
+      current_url = document.location.hostname.toString();
+  
+  // Change links if cookie exists
+  if (tlh_cookie_value !== null || freya_cookie_value !== null) {
+    
+    // Create original_referrer cookie if referrer is different from current domain
+    if (!document.referrer.includes(current_url)) {
+
+      // Confirm original_referrer was not created before
+      if (getSmartCookie('original_referrer') !== null) {
+        document.cookie = 'original_referrer=' + document.referrer + ';path=/';
+      }
+    }
+    changeLink();
+  }
+
+}
+
+document.addEventListener("DOMContentLoaded", function(){
+  checkURL();
+});
