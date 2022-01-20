@@ -75,4 +75,3 @@ y_pred=model.predict(x_test)
 y_pre=model.predict([feature])
 
 print("result:", y_pre)
-
